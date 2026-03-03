@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <title>股票 MA5/MA20 訊號</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+            background-color: #f9f9f9;
+        }
+        h1 {
+            color: #333;
+        }
+        form {
+            margin-bottom: 30px;
+        }
+        input[type="text"] {
+            width: 300px;
+            padding: 8px;
+            font-size: 16px;
+        }
+        input[type="submit"] {
+            padding: 8px 16px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            max-width: 800px;
+        }
+        table, th, td {
+            border: 1px solid #aaa;
+        }
+        th, td {
+            padding: 8px;
+            text-align: center;
+        }
+        th {
+            background-color: #eee;
+        }
+        .error {
+            color: red;
+        }
+    </style>
+</head>
+<body>
+    <h1>股票資訊</h1>
+    <form method="POST">
+        <label for="symbols">輸入股票代號（空格或逗號分隔）:</label>
+        <br>
+        <input type="text" name="symbols" id="symbols" required>
+        <input type="submit" value="查詢">
+    </form>
+
+    {% if results %}
+        <table>
+            <tr>
+                <th>股票代號</th>
+                <th>目前股價</th>
+                <th>昨天 MA5</th>
+                <th>今天 MA5</th>
+                <th>昨天 MA20</th>
+                <th>今天 MA20</th>
+                
+                <th>交易</th>
+                <th>過去7天交易</th>
+                <th>錯誤訊息</th>
+                
+            </tr>
+            {% for r in results %}
+            <tr>
+                <td>{{ r.symbol }}</td>
+                <td>{{ r.price }}</td>
+                <td>{{ r.yesterday_ma5 if r.yesterday_ma5 is defined else "-" }}</td>
+                <td>{{ r.today_ma5 if r.today_ma5 is defined else "-" }}</td>
+                <td>{{ r.yesterday_ma20 if r.yesterday_ma20 is defined else "-" }}</td>
+                <td>{{ r.today_ma20 if r.today_ma20 is defined else "-" }}</td>
+                
+                <td>{{ r.signal if r.signal is defined else "-" }}</td>
+                <td>{{ r.alert if r.alert is defined else "-" }}</td>
+                <td class="error">{{ r.error if r.error is defined else "-" }}</td>
+                
+            </tr>
+            {% endfor %}
+        </table>
+    {% endif %}
+</body>
+</html>

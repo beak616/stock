@@ -4,7 +4,14 @@ import pandas as pd
 import os
 
 app = Flask(__name__)
+url = "https://openapi.twse.com.tw/v1/exchangeReport/STOCK_DAY_ALL"
+df = pd.read_json(url)
+stock_map = dict(zip(df["Name"], df["Code"] + ".TW"))
+reverse_map = {}
 
+for name, code in stock_map.items():
+    reverse_map[code] = name
+    reverse_map[code.replace(".TW","")] = name
 def safe_round(value):
     if pd.isna(value):
         return "-"
@@ -20,6 +27,13 @@ def index():
 
         for symbol in symbols:
             try:
+                symbol = symbol.strip()
+
+                if symbol in stock_map:
+                    symbol = stock_map[symbol]
+
+                elif symbol.isdigit():
+                    symbol = symbol + ".TW"
                 data = yf.download(symbol, period="90d", auto_adjust=True)
 
                 if data.empty or len(data) < 25:
@@ -45,11 +59,9 @@ def index():
                 today_ma20 = ma20.iloc[-1]
                 yesterday_ma20 = ma20.iloc[-2]
 
-                # 如果有 NaN 就不判斷
                 if any(pd.isna(x) for x in [today_ma5, yesterday_ma5, today_ma20, yesterday_ma20]):
                     signal = "-"
                 else:
-                    # 標準黃金交叉 / 死亡交叉
                     if yesterday_ma5 <= yesterday_ma20 and today_ma5 > today_ma20:
                         signal = "buy"
                     elif yesterday_ma5 >= yesterday_ma20 and today_ma5 < today_ma20:
@@ -57,7 +69,6 @@ def index():
                     else:
                         signal = "-"
 
-                # 七天內交叉警示
                 alert = "-"
                 for i in range(1, 7):
                     if (ma5.iloc[-i] > ma20.iloc[-i] and
@@ -66,9 +77,12 @@ def index():
                         ma5.iloc[-i-1] >= ma20.iloc[-i-1]):
                         alert = "intersect"
                         break
-
+                code = symbol.replace(".TW", "")
+                display_name = reverse_map.get(code, code)
                 results.append({
-                    "symbol": symbol.upper(),
+                    
+
+                    "symbol": f"{display_name} ({code})",
                     "price": current_price,
                     "today_ma5": safe_round(today_ma5),
                     "yesterday_ma5": safe_round(yesterday_ma5),

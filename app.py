@@ -4,14 +4,17 @@ import pandas as pd
 import os
 
 app = Flask(__name__)
-url = "https://openapi.twse.com.tw/v1/exchangeReport/STOCK_DAY_ALL"
+
+url = "https://twse.com.tw"
 df = pd.read_json(url)
-stock_map = dict(zip(df["Name"], df["Code"] + ".TW"))
+
+stock_map = dict(zip(df["Name"], df["Code"].astype(str) + ".TW"))
 reverse_map = {}
 
 for name, code in stock_map.items():
     reverse_map[code] = name
     reverse_map[code.replace(".TW","")] = name
+
 def safe_round(value):
     if pd.isna(value):
         return "-"
@@ -31,9 +34,9 @@ def index():
 
                 if symbol in stock_map:
                     symbol = stock_map[symbol]
-
                 elif symbol.isdigit():
                     symbol = symbol + ".TW"
+                
                 data = yf.download(symbol, period="90d", auto_adjust=True)
 
                 if data.empty or len(data) < 25:
@@ -47,10 +50,10 @@ def index():
                 if isinstance(close, pd.DataFrame):
                     close = close.iloc[:, 0]
 
-                # 現在股價
+         
                 current_price = safe_round(close.iloc[-1])
 
-                # 計算均線
+               
                 ma5 = close.rolling(5).mean()
                 ma20 = close.rolling(20).mean()
 
@@ -77,11 +80,10 @@ def index():
                         ma5.iloc[-i-1] >= ma20.iloc[-i-1]):
                         alert = "intersect"
                         break
+                        
                 code = symbol.replace(".TW", "")
                 display_name = reverse_map.get(code, code)
                 results.append({
-                    
-
                     "symbol": f"{display_name} ({code})",
                     "price": current_price,
                     "today_ma5": safe_round(today_ma5),
@@ -100,7 +102,6 @@ def index():
                 })
 
     return render_template("ind.html", results=results)
-
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))

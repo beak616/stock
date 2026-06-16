@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request
 import yfinance as yf
 import pandas as pd
-import requests
+import json
 import os
 
 app = Flask(__name__)
@@ -11,21 +11,22 @@ reverse_map = {}
 
 def initialize_stock_data():
     global stock_map, reverse_map
-    url = "https://twse.com.tw"
     try:
-        response = requests.get(url, timeout=10)
-        response.raise_for_status()
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        json_path = os.path.join(base_dir, "stocks.json")
         
-        data_json = response.json()
+        with open(json_path, "r", encoding="utf-8") as f:
+            data_json = json.load(f)
+            
         df = pd.DataFrame(data_json)
         
         stock_map = dict(zip(df["Name"], df["Code"].astype(str) + ".TW"))
         for name, code in stock_map.items():
             reverse_map[code] = name
             reverse_map[code.replace(".TW", "")] = name
-        print("✅ 證交所股票資料初始化成功！")
+        print("✅ 本地 JSON 股票資料載入成功！")
     except Exception as e:
-        print(f"❌ 證交所 API 讀取失敗，原因: {e}")
+        print(f"❌ 本地 JSON 載入失敗，原因: {e}")
         stock_map = {}
         reverse_map = {}
 

@@ -1,19 +1,35 @@
 from flask import Flask, render_template, request
 import yfinance as yf
 import pandas as pd
+import requests
 import os
 
 app = Flask(__name__)
 
-url = "https://twse.com.tw"
-df = pd.read_json(url)
-
-stock_map = dict(zip(df["Name"], df["Code"].astype(str) + ".TW"))
+stock_map = {}
 reverse_map = {}
 
-for name, code in stock_map.items():
-    reverse_map[code] = name
-    reverse_map[code.replace(".TW","")] = name
+def initialize_stock_data():
+    global stock_map, reverse_map
+    url = "https://twse.com.tw"
+    try:
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+        
+        data_json = response.json()
+        df = pd.DataFrame(data_json)
+        
+        stock_map = dict(zip(df["Name"], df["Code"].astype(str) + ".TW"))
+        for name, code in stock_map.items():
+            reverse_map[code] = name
+            reverse_map[code.replace(".TW", "")] = name
+        print("✅ 證交所股票資料初始化成功！")
+    except Exception as e:
+        print(f"❌ 證交所 API 讀取失敗，原因: {e}")
+        stock_map = {}
+        reverse_map = {}
+
+initialize_stock_data()
 
 def safe_round(value):
     if pd.isna(value):
@@ -50,10 +66,8 @@ def index():
                 if isinstance(close, pd.DataFrame):
                     close = close.iloc[:, 0]
 
-         
                 current_price = safe_round(close.iloc[-1])
 
-               
                 ma5 = close.rolling(5).mean()
                 ma20 = close.rolling(20).mean()
 
